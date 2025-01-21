@@ -9,6 +9,7 @@ const defaultLogLevel = 'silly'
 const testSeed = 'z1AeiPT496wWmo9BG2QYXeTusgFSZPNG3T9wNeTtjrQ3rCB'
 export const TEST_TENANT_NAME = 'testing'
 export const SECOND_TEST_TENANT_NAME = 'test'
+export const DID_WEB_TEST_TENANT_NAME = 'did-web-test'
 const randomTenantName = 'random'
 let DID_SEEDS = {}
 
@@ -27,7 +28,13 @@ async function parseTenantSeeds() {
     didSeed: await decodeSeed(testSeed),
     didMethod: 'key'
   }
-  // also add in the random test key
+  // and add a test tenant for did:web
+  DID_SEEDS[DID_WEB_TEST_TENANT_NAME] = {
+    didSeed: await decodeSeed(testSeed),
+    didMethod: 'web',
+    didUrl: 'https://digitalcredentials.github.io/dcc-did-web'
+  }
+  // and add in a random test key
   const randomSeed = { didSeed: await generateSecretKeySeed() }
   DID_SEEDS[randomTenantName] = await decodeSeed(randomSeed.didSeed)
   const allEnvVars = process.env

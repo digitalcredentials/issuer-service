@@ -130,18 +130,27 @@ Note that these are all unsecured calls. You can choose to implement security as
 
 #### Default Tenants
 
-There are three tenants setup by default:
+There are four tenants setup by default:
 
  * instance/test/credentials/issue
  * instance/testing/credentials/issue
  * instance/random/credentials/issue
+ * instance/did-web-test/credentials/issue
 
 The `test` and `testing` tenants both use this seed and corresponding [DID](https://www.w3.org/TR/did-core/):
 
  * seed - `z1AeiPT496wWmo9BG2QYXeTusgFSZPNG3T9wNeTtjrQ3rCB`
  * did - `did:key:z6MknNQD1WHLGGraFi6zcbGevuAgkVfdyCdtZnQTGWVVvR5Q`
 
-That [DID](https://www.w3.org/TR/did-core/) for the `test` and `testing` tenants is currently registered in the [DCC Sandbox Registry](https://github.com/digitalcredentials/sandbox-registry) so that any credentials generated with that tenant will, when verified, show as having originated from the DCC test issuer.
+The `did-web-test` tenant also uses the same seed as `test` and `testing`, but with this did:
+
+* did - `did:web:digitalcredentials.github.io:dcc-did-web`
+
+The did document for the `did-web-test` tenant, which is a did:web did, is therefore hosted here:
+
+[https://digitalcredentials.github.io/dcc-did-web/did.json](https://digitalcredentials.github.io/dcc-did-web/did.json)
+
+The [DID](https://www.w3.org/TR/did-core/) for the `test`, `testing` tenants, as well the did for the `did-web-test` tenant, are currently registered in the [DCC Sandbox Registry](https://github.com/digitalcredentials/sandbox-registry) so that any credentials generated with those tenants will, when verified, show as having originated from the DCC test issuer.
 
 There is no effectively difference between the `test` and `testing` tenants - both are included simply for ease of use.
 
@@ -218,7 +227,7 @@ The `did` value is meant to be shared with others, typically by publishing it in
 
 #### did:web generator
 
-Setting up a did:web is a bit more complicated because - unlike a did:key - a did `document` has to be publicly available and in particular for a did:web, must be hosted at a public url.
+Setting up a did:web is a bit more complicated because - unlike a did:key - a did `document` has to be publicly available and must be hosted at a public url.
 
 So you can generate a did:web document using our other convenience endpoint:
 
@@ -229,17 +238,23 @@ In this case you'll need to POST a json document to the endpoint. Here is a curl
 ```
 curl --location 'localhost:4006/did-web-generator' \
 --header 'Content-Type: application/json' \
---data '{"url": "https://raw.githubusercontent.com/jchartrand/didWebTest/main"}'
+--data '{"url": "https://digitalcredentials.github.io/dcc-did-web"}'
 ```
 
 The value of 'url' property should be the url at which you will host your did:web document.
 For the url above, the document will therefore need to be hosted at:
 
-```https://raw.githubusercontent.com/jchartrand/didWebTest/main/.well-known/did.json```
+```https://digitalcredentials.github.io/dcc-did-web/did.json```
 
-But, when generating the did, leave off the '.well-known/did.json' part. That bit is assumed, according to the did:web specification.
+But, when generating the did, leave off the 'did.json' part. That bit is assumed, according to the did:web specification. 
 
-So, that curl command will return a document something like so:
+Two caveats:
+
+1. If you are hosting the did.json file at the root of your domain, so with no path, then you should put it into a folder (at the root of your domain) called `.well-known`. This is just what the did:web specification expects.
+
+2. If you want to host your did document in a github repository (as we've done above), you'll need to publish your git repository as Github Pages, so that the file is properly returned with a json content-type header. The github raw url, by comparison, returns the file with a plain text content type, which some did-resolvers don't like.
+
+So, that curl command to genrate a did:web will return a json document something like so:
 
 <details> 
 <summary>Show code</summary>
@@ -283,20 +298,20 @@ So, that curl command will return a document something like so:
     },
     "did": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main",
     "didDocument": {
-        "@context": [
-            "https://www.w3.org/ns/did/v1",
-            "https://w3id.org/security/suites/ed25519-2020/v1",
-            "https://w3id.org/security/suites/x25519-2020/v1"
-        ],
-        "id": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main",
-        "assertionMethod": [
-            {
-                "id": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main#z6MkfGZKFTyxiH9HgFUHbPQigEWh8PtFaRkESt9oQLiTvhVq",
-                "type": "Ed25519VerificationKey2020",
-                "controller": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main",
-                "publicKeyMultibase": "z6MkfGZKFTyxiH9HgFUHbPQigEWh8PtFaRkESt9oQLiTvhVq"
-            }
-        ]
+    "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/ed25519-2020/v1",
+        "https://w3id.org/security/suites/x25519-2020/v1"
+      ],
+      "id": "did:web:digitalcredentials.github.io:dcc-did-web",
+      "assertionMethod": [
+        {
+            "id": "did:web:digitalcredentials.github.io:dcc-did-web#z6MknNQD1WHLGGraFi6zcbGevuAgkVfdyCdtZnQTGWVVvR5Q",
+            "type": "Ed25519VerificationKey2020",
+            "controller": "did:web:digitalcredentials.github.io:dcc-did-web",
+            "publicKeyMultibase": "z6MknNQD1WHLGGraFi6zcbGevuAgkVfdyCdtZnQTGWVVvR5Q"
+        }
+      ]
     }
 }
 ```
@@ -308,30 +323,32 @@ You will additionally need to copy the value of the didDocument property, i.e, f
 
 ```json
 {
-        "@context": [
-            "https://www.w3.org/ns/did/v1",
-            "https://w3id.org/security/suites/ed25519-2020/v1",
-            "https://w3id.org/security/suites/x25519-2020/v1"
-        ],
-        "id": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main",
-        "assertionMethod": [
-            {
-                "id": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main#z6MkfGZKFTyxiH9HgFUHbPQigEWh8PtFaRkESt9oQLiTvhVq",
-                "type": "Ed25519VerificationKey2020",
-                "controller": "did:web:raw.githubusercontent.com:jchartrand:didWebTest:main",
-                "publicKeyMultibase": "z6MkfGZKFTyxiH9HgFUHbPQigEWh8PtFaRkESt9oQLiTvhVq"
-            }
-        ]
-    }
+    "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/ed25519-2020/v1",
+        "https://w3id.org/security/suites/x25519-2020/v1"
+    ],
+    "id": "did:web:digitalcredentials.github.io:dcc-did-web",
+    "assertionMethod": [
+        {
+            "id": "did:web:digitalcredentials.github.io:dcc-did-web#z6MknNQD1WHLGGraFi6zcbGevuAgkVfdyCdtZnQTGWVVvR5Q",
+            "type": "Ed25519VerificationKey2020",
+            "controller": "did:web:digitalcredentials.github.io:dcc-did-web",
+            "publicKeyMultibase": "z6MknNQD1WHLGGraFi6zcbGevuAgkVfdyCdtZnQTGWVVvR5Q"
+        }
+    ]
+}
 ```
 
 and save that in a file called did.json at the url where you'll host the document. So for our example at:
 
-```https://raw.githubusercontent.com/jchartrand/didWebTest/main/.well-known/did.json```
+```https://digitalcredentials.github.io/dcc-did-web/did.json```
 
-You must also set the `TENANT_DIDMETHOD_{TENANT_NAME}=web` environment variable and set the `TENANT_DID_URL_{TENANT_NAME}` environement variable to the url where your `.well-known/did.json` did-document is hosted, which for this example would be:
+You must also set the `TENANT_DIDMETHOD_{TENANT_NAME}=web` environment variable and set the `TENANT_DID_URL_{TENANT_NAME}` environement variable to the url where your `did.json` or `.well-known/did.json` did-document is hosted, which for this example would be:
 
-```https://raw.githubusercontent.com/jchartrand/didWebTest/main```
+```https://digitalcredentials.github.io/dcc-did-web```
+
+IMPORTANT: THE EXAMPLE DIDS GENERATED ABOVE WON'T WORK AS-IS. YOU WILL NEED TO GENERATE YOUR OWN.
 
 #### random tenant key
 

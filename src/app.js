@@ -11,6 +11,8 @@ import SigningException from './SigningException.js'
 import { getUnsignedVC } from './test-fixtures/vc.js'
 import { TEST_TENANT_NAME } from './config.js'
 
+const allowedSigningSuites = ['eddsa2022', 'ed25519']
+
 export async function build() {
   var app = express()
 
@@ -44,15 +46,17 @@ export async function build() {
 
   app.post('/instance/:instanceId/credentials/sign', async (req, res, next) => {
     try {
+      const suiteParam = req.query.suite ?? ['ed25519']
+      // one or more suites may have been specified so convert a single
+      // suite to an array to make it easier to deal with later, i.e., always as an array
+      const suiteList = [].concat(suiteParam)
+      // check that we support all listed suites
+      checkSuites(suiteList)
       const instanceId = req.params.instanceId //the issuer instance/tenant with which to sign
       const unSignedVC = req.body
-      if (!req.body || !Object.keys(req.body).length) {
-        throw new SigningException(
-          400,
-          'A verifiable credential must be provided in the body.'
-        )
-      }
-      const signedVC = await issue(unSignedVC, instanceId)
+      // check that this is at least a json object
+      checkVC(unSignedVC)
+      const signedVC = await issue(unSignedVC, instanceId, suiteList)
       return res.json(signedVC)
     } catch (e) {
       // catch the async errors and pass them to the error logger and handler
@@ -79,6 +83,24 @@ export async function build() {
     }
   })
 
+  function checkVC(unsignedVC) {
+    if (!unsignedVC || !Object.keys(unsignedVC).length) {
+      throw new SigningException(
+        400,
+        'A verifiable credential must be provided in the body.'
+      )
+    }
+  }
+
+  function checkSuites(requestedSuites) {
+    if (
+      !requestedSuites.every((requestedSuite) =>
+        allowedSigningSuites.includes(requestedSuite)
+      )
+    ) {
+      throw new SigningException(400, 'An invalid signing suite was specified.')
+    }
+  }
   // Attach the error handling middleware calls, in the order that they should run
   app.use(errorLogger)
   app.use(errorHandler)
